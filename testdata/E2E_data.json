@@ -1,0 +1,9 @@
+{
+  "card": {
+    "number": "4111111111111111",
+    "expiration_year_month": "12/27",
+
+    "cvv": "123",
+    "postal_code": "12345"
+  }
+}
