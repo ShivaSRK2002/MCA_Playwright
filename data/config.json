@@ -29,7 +29,7 @@
     },
     "environment": {
     "env": "qa",  
-    "base_url": "https://mca.uat.focusbrands.com",
+    "base_url": "https://www.moes.com/",
     "api_url": "",
     "backend_url": "",
     "auth_token_env_var": "AUTH_TOKEN", 

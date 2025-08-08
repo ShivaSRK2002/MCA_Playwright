@@ -5,14 +5,14 @@ import datetime
 import re
 import requests
 from playwright.sync_api import sync_playwright
-from utils.cleanup_utils import delete_old_timestamp_folders
-from utils.message_utils import send_teams_message, send_slack_message, send_email_from_config
-from utils.allure_report import generate_allure_report, parse_allure_summary
-from utils.health_check import check_api, check_web_app, check_mobile_backend, check_database
+# from utils.cleanup_utils import delete_old_timestamp_folders
+# from utils.message_utils import send_teams_message, send_slack_message, send_email_from_config
+# from utils.allure_report import generate_allure_report, parse_allure_summary
+# from utils.health_check import check_api, check_web_app, check_mobile_backend, check_database
 
 # ------------------ CLEANUP OLD FILES ------------------ #
-for folder in ["screenshots", "logs", "reports", "allure-results"]:
-    delete_old_timestamp_folders(folder, days_old=7)
+# for folder in ["screenshots", "logs", "reports", "allure-results"]:
+#     delete_old_timestamp_folders(folder, days_old=7)
 
 # ------------------ GLOBALS ------------------ #
 RUN_TIMESTAMP = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
@@ -70,8 +70,11 @@ def page(browser_instance):
     proxy_config = {"server": config.get("mcp_proxy", "http://localhost:3000")} if mcp_enabled else None
 
     args = [
-        "--disable-infobars", "--disable-notifications", "--start-fullscreen",
-        "--no-default-browser-check"
+        "--disable-infobars",
+        "--disable-notifications",
+        "--no-default-browser-check",
+        "--start-maximized",
+        "--window-position=0,0"
     ]
     if mcp_enabled:
         args.append("--proxy-server=http://localhost:3000")
@@ -84,13 +87,17 @@ def page(browser_instance):
         launch_options["proxy"] = proxy_config
 
     browser = getattr(playwright, browser_name).launch(**launch_options)
-    context = browser.new_context(accept_downloads=True)
+    context = browser.new_context(
+        accept_downloads=True,
+        viewport=None  # Full screen
+    )
     page = context.new_page()
     page.goto(config["environment"]["base_url"], wait_until="load", timeout=30000)
     yield page
     page.close()
     context.close()
     browser.close()
+
 
 # ------------------ API SESSION FIXTURE ------------------ #
 @pytest.fixture
@@ -127,12 +134,12 @@ def pytest_runtest_makereport(item, call):
             print(f"[INFO] No Playwright page object — skipping screenshot for: {item.name}")
 # ------------------ POST-SUITE ACTIONS ------------------ #
 def pytest_sessionfinish(session, exitstatus):
-    print("\n[Post-Suite] Generating Allure report...")
-    generate_allure_report()
-    summary = parse_allure_summary()
-    overall_status = "Fail" if summary.get("failed", 0) > 0 else "Pass"
+    # print("\n[Post-Suite] Generating Allure report...")
+    # generate_allure_report()
+    # summary = parse_allure_summary()
+    # overall_status = "Fail" if summary.get("failed", 0) > 0 else "Pass"
 
-    # Uncomment to enable notifications
+    # # Uncomment to enable notifications
     # send_email_from_config(allure_summary=summary, overall_status=overall_status)
     # msg = f"Test Suite Completed\nStatus: {overall_status}\nPassed: {summary.get('passed', 0)}, Failed: {summary.get('failed', 0)}, Skipped: {summary.get('skipped', 0)}, Duration: {summary.get('duration', 'N/A')}"
     # send_teams_message(msg)
