@@ -1,12 +1,13 @@
 class MoesE2ELocators:
     # Navigation and Account
-    MENU_NAV_LINK = '[data-testid="Menu_Menu"]'
+    MENU_NAV_LINK = '#Menu_Menu'
     SIGN_IN_BUTTON = '[data-testid="signin-button"]'
     CREATE_ACCOUNT_BTN = '[data-testid="btn_create_account"]'
     CONTINUE_AS_GUEST_BUTTON = '[data-testid="txt_guest_account"]'
     ACCEPT_ALL_COOKIES_BTN = "//button[@id='acceptAllCookieButton']"
 
-
+    
+    SIGN_IN_BUTTON_USER = '#sign-in-button'
 
 
     # Signup / Login Fields
@@ -60,3 +61,4 @@ class MoesE2ELocators:
     CHECKOUT_LASTNAME_INPUT = '[data-testid="txt_checkout_lastname"]'
     CHECKOUT_EMAIL_INPUT = '[data-testid="txt_checkout_email"]'
     CHECKOUT_PHONE_INPUT = '[data-testid="txt_checkout_phonenumber"]'
+    ACCEPT_BTN = "#acceptAllCookieButton"
