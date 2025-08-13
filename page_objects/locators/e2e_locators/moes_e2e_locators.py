@@ -33,9 +33,12 @@ class MoesE2ELocators:
     SEARCH_TEXT = '[data-testid="input_store_search_input"]'
     SELECT_ADDRESS_BTN = 'button[data-testid="btn_placeId"] >> text=Guam'
     ORDER_NOW_BUTTON = '[data-testid="zipcode_95635"] >> [data-testid="btn_order_now"]'
+    # Locator for the "Select Location" button inside the store card with ID 95635
+   
 
     LOCATION_TEXT = '[data-testid="btn_restaurant_name"]'
-    SELECT_LOCATION = '[data-testid="btn_select location"]'
+    SELECT_LOCATION = "div.storeCardContainer[id='id_95635'] button[data-testid='btn_select location']"
+
     BEVERAGES_CATEGORY = '[data-testid="menu_category_id_cat-004"]'
     BOTTLED_20OZ_TILE = '[data-testid="img_pro-032"]'
     REGULAR_FOUNTAIN_DRINK_TILE = "#drinks-id [alt='Regular Fountain Drink']"
