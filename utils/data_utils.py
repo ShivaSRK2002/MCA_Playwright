@@ -4,6 +4,8 @@ import uuid
 from itertools import permutations, combinations
 import datetime
 import json
+import os
+
 
 FIRST_NAMES = ['John', 'Jane', 'Alice', 'Bob', 'David', 'Emma', 'Liam', 'Olivia']
 LAST_NAMES = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis']
@@ -57,10 +59,20 @@ def random_integer(min_value=0, max_value=100):
     except Exception as e:
         raise Exception(f"[ERROR] Failed to generate random integer: {str(e)}")
 
+
 def load_card_details(filepath='testdata/E2E_data.json'):
-    with open(filepath, 'r') as file:
+    abs_path = project_path(filepath)
+    if not os.path.exists(abs_path):
+        raise FileNotFoundError(f"Card details file not found: {abs_path}")
+
+    with open(abs_path, 'r') as file:
         data = json.load(file)
-    return data['card']
+
+    # If card info is nested, extract it
+    if "card" in data:
+        return data["card"]
+    return data
+
 
 def random_first_name():
     return random.choice(FIRST_NAMES)
@@ -129,3 +141,11 @@ def generate_us_mobile_number(formatted: bool = False) -> str:
         return f"{country_code} ({area_code}) {exchange_code}-{subscriber_number}"
     else:
         return f"{country_code}{area_code}{exchange_code}{subscriber_number}"
+
+def project_path(relative_path: str) -> str:
+    """
+    Returns an absolute path for a file in the project root,
+    regardless of where pytest is run from.
+    """
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    return os.path.join(base_dir, relative_path)

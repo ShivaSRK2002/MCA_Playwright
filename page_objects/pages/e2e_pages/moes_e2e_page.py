@@ -179,6 +179,7 @@ class MoesE2EPage:
             self.page.locator(MoesE2ELocators.START_ORDER).click()
 
             logger.info("Waiting for store search input and filling address: 'Guam'")
+
             self.page.locator(MoesE2ELocators.SEARCH_TEXT).wait_for(state="visible", timeout=10000)
             self.page.fill(MoesE2ELocators.SEARCH_TEXT, "Guam")
 

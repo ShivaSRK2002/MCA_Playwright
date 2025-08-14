@@ -4,7 +4,11 @@ import json
 import datetime
 import re
 import requests
+import subprocess
+from datetime import timedelta
 from playwright.sync_api import sync_playwright
+from utils.data_utils import project_path
+
 
 # ------------------ GLOBALS ------------------ #
 RUN_TIMESTAMP = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
@@ -28,8 +32,13 @@ def pytest_addoption(parser):
 
 # ------------------ LOAD CONFIG ------------------ #
 def load_config(path='data/config.json'):
-    with open(path, 'r') as f:
+    abs_path = project_path(path)
+    if not os.path.exists(abs_path):
+        raise FileNotFoundError(f"Config file not found: {abs_path}")
+
+    with open(abs_path, 'r') as f:
         cfg = json.load(f)
+
     env_section = cfg.get("environment", {})
     token_var = env_section.get("auth_token_env_var")
     if token_var:
@@ -41,13 +50,9 @@ def load_config(path='data/config.json'):
 
 # ------------------ PARAMETRIZE TESTS ------------------ #
 def pytest_generate_tests(metafunc):
-    """
-    Only parametrize browser_name if the user passed --browsers.
-    This avoids conflicts with pytest-playwright's built-in parametrization.
-    """
     if "browser_name" in metafunc.fixturenames:
         browsers_opt = metafunc.config.getoption("browsers")
-        if browsers_opt:  # only override if explicitly passed
+        if browsers_opt:
             browsers = [b.strip() for b in browsers_opt.split(",") if b.strip()]
             metafunc.parametrize("browser_name", browsers, scope="session")
 
@@ -134,3 +139,31 @@ def pytest_runtest_makereport(item, call):
 # ------------------ POST-SUITE ACTIONS ------------------ #
 def pytest_sessionfinish(session, exitstatus):
     print("[Post-Suite] Execution finished.")
+
+    # ------------------ Generate Allure Report ------------------ #
+    results_dir = "allure-results"
+    if os.path.exists(results_dir) and os.listdir(results_dir):
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        report_dir = os.path.join("reports/allure-report", f"allure-report-{timestamp}")
+        os.makedirs(report_dir, exist_ok=True)
+
+        try:
+            print("[INFO] Generating Allure HTML report...")
+            subprocess.run(
+                [
+                    r"C:\Users\shiva.ramakrishnan\allure-2.34.1\bin\allure.bat",
+                    "generate",
+                    results_dir,
+                    "--clean",
+                    "-o",
+                    report_dir
+                ],
+                check=True,
+                shell=True
+            )
+
+            print(f"[PASS] Allure report generated at: {report_dir}")
+        except subprocess.CalledProcessError as e:
+            print(f"[ERROR] Failed to generate Allure report: {e}")
+    else:
+        print("[WARN] No allure-results found — skipping report generation")

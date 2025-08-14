@@ -1,7 +1,6 @@
 import pytest
 from page_objects.pages.e2e_pages.moes_e2e_page import MoesE2EPage
 
-from page_objects.pages.e2e_pages.moes_e2e_page import MoesE2EPage
 
 def test_order_placement_logged(page, browser_name):
     e2e_page = MoesE2EPage(page)
