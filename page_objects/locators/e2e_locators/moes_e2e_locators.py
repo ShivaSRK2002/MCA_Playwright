@@ -29,7 +29,7 @@ class MoesE2ELocators:
     Date_DROPDOWN = 'li[role="option"][aria-label="1"]'
 
     # Ordering
-    START_ORDER = '[data-testid="btn_startorder"]'
+    START_ORDER = '#btn_startorder'
     SEARCH_TEXT = '[data-testid="input_store_search_input"]'
     SELECT_ADDRESS_BTN = 'button[data-testid="btn_placeId"] >> text=Guam'
     ORDER_NOW_BUTTON = '[data-testid="zipcode_95635"] >> [data-testid="btn_order_now"]'

@@ -42,5 +42,5 @@ def save_results_to_excel(test_results, filename_prefix="test_results"):
 
     file_path = os.path.join(os.getcwd(), filename)
     wb.save(file_path)
-    logger.info(f"✅ Test results saved to {file_path}")
+    logger.info(f"Test results saved to {file_path}")
     return file_path

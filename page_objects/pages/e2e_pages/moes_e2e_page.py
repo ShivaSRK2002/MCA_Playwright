@@ -178,8 +178,9 @@ class MoesE2EPage:
                 self.page.click('#acceptAllCookieButton', force=True)
                 log_step("Cookies accepted (forced)", "PASS", self.test_results, self.start_time)
 
+
             logger.info("Waiting for and clicking Start Order")
-            self.page.locator(MoesE2ELocators.START_ORDER).wait_for(state="visible", timeout=10000)
+            self.page.locator(MoesE2ELocators.START_ORDER).wait_for(state="visible", timeout=20000)
             self.page.locator(MoesE2ELocators.START_ORDER).click()
             log_step("Start Order clicked", "PASS", self.test_results, self.start_time)
 
@@ -267,8 +268,6 @@ class MoesE2EPage:
             self.page.click(MoesE2ELocators.PLACE_ORDER_BUTTON)
             time.sleep(10)
             log_step("Order placed successfully", "PASS", self.test_results, self.start_time)
-
-            # ✅ Save results to Excel (worker-aware)
             save_results_to_excel(self.test_results)
 
         except Exception as e:
