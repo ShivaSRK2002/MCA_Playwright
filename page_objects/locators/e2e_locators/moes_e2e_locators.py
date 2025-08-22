@@ -65,3 +65,8 @@ class MoesE2ELocators:
     CHECKOUT_EMAIL_INPUT = '[data-testid="txt_checkout_email"]'
     CHECKOUT_PHONE_INPUT = '[data-testid="txt_checkout_phonenumber"]'
     ACCEPT_BTN = "#acceptAllCookieButton"
+
+    ORDER_DETAIL_SECTION = '[data-testid="orderDetail"]'
+    ORDER_ID_TEXT = '[data-testid="orderID"]'
+    ORDER_TIME_TEXT = '.orderDetailTime'
+

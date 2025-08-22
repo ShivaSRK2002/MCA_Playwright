@@ -267,8 +267,27 @@ class MoesE2EPage:
             self.page.wait_for_timeout(5000)
             self.page.click(MoesE2ELocators.PLACE_ORDER_BUTTON)
             time.sleep(10)
-            log_step("Order placed successfully", "PASS", self.test_results, self.start_time)
+
+            # ✅ Wait until order confirmation page is visible
+            self.page.wait_for_selector(MoesE2ELocators.ORDER_ID_TEXT, timeout=15000)
+
+            # Get order details
+            order_id = self.page.inner_text(MoesE2ELocators.ORDER_ID_TEXT)
+            order_time = self.page.inner_text(MoesE2ELocators.ORDER_TIME_TEXT)
+
+            # Log success with order details
+            log_step(f"Order placed successfully with {order_id} at {order_time}",
+                     "PASS", self.test_results, self.start_time)
+
+            # 📸 Take screenshot of confirmation page
+            screenshot_path = f"screenshots/order_confirmation_{int(time.time())}.png"
+            self.page.screenshot(path=screenshot_path, full_page=True)
+            logger.info(f"Screenshot saved at: {screenshot_path}")
+
+            # Save results
             save_results_to_excel(self.test_results)
+            time.sleep(5)
+
 
         except Exception as e:
             log_step(f"Order failed: {str(e)}", "FAIL", self.test_results, self.start_time)

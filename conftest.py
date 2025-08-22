@@ -69,7 +69,7 @@ def before_suite(request):
 
 # ------------------ PAGE FIXTURE ------------------ #
 @pytest.fixture
-def page(browser_name):
+def page(browser_name, request):
     default_headless = config.get("headless", True)
     mcp_enabled = config.get("enable_mcp", False)
     proxy_config = {"server": config.get("mcp_proxy", "http://localhost:3000")} if mcp_enabled else None
@@ -99,9 +99,23 @@ def page(browser_name):
         accept_downloads=True,
         viewport=viewport_size
     )
+
+    # --- Start tracing ---
+    context.tracing.start(screenshots=True, snapshots=True, sources=True)
+
     page = context.new_page()
     page.goto(config["environment"]["base_url"], wait_until="load", timeout=30000)
+
     yield page
+
+    # --- Stop tracing and save file ---
+    test_name = re.sub(r'[^a-zA-Z0-9_]+', '_', request.node.name)
+    trace_dir = os.path.join("reports", "traces")
+    os.makedirs(trace_dir, exist_ok=True)
+    trace_path = os.path.join(trace_dir, f"{test_name}.zip")
+    context.tracing.stop(path=trace_path)
+    print(f"[Trace] Saved trace: {trace_path}")
+
     page.close()
     context.close()
     browser.close()
