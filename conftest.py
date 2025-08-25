@@ -5,15 +5,17 @@ import datetime
 import re
 import requests
 import subprocess
+from collections import defaultdict
 from datetime import timedelta
 from playwright.sync_api import sync_playwright
 from utils.data_utils import project_path
-
+from utils.message_utils import send_email_from_config,send_teams_message
 
 # ------------------ GLOBALS ------------------ #
 RUN_TIMESTAMP = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
 SCREENSHOT_DIR = os.path.join("screenshots", RUN_TIMESTAMP)
 os.makedirs(SCREENSHOT_DIR, exist_ok=True)
+TEST_RESULTS = defaultdict(int)
 
 config = {}
 playwright = None
@@ -21,6 +23,7 @@ playwright = None
 # ------------------ CLI OPTIONS ------------------ #
 def pytest_addoption(parser):
     parser.addoption("--config", action="store", default="data/config.json")
+    parser.addoption("--env", action="store", default=None, help="Choose environment/brand (e.g. moes, brandB)")
     parser.addoption(
         "--browsers",
         action="store",
@@ -30,8 +33,9 @@ def pytest_addoption(parser):
     parser.addoption("--instances", action="store", default="1", help="Instances per browser")
     parser.addoption("--mcp", action="store_true", help="Enable MCP proxy for self-healing")
 
+
 # ------------------ LOAD CONFIG ------------------ #
-def load_config(path='data/config.json'):
+def load_config(path='data/config.json', request=None):
     abs_path = project_path(path)
     if not os.path.exists(abs_path):
         raise FileNotFoundError(f"Config file not found: {abs_path}")
@@ -39,13 +43,29 @@ def load_config(path='data/config.json'):
     with open(abs_path, 'r') as f:
         cfg = json.load(f)
 
-    env_section = cfg.get("environment", {})
-    token_var = env_section.get("auth_token_env_var")
+    # ---- Pick environment in priority: --env > ENV var > defaultEnv ----
+    env_name = None
+    if request:
+        env_name = request.config.getoption("--env")
+    if not env_name:
+        env_name = os.getenv("ENV")
+    if not env_name:
+        env_name = cfg.get("defaultEnv", "moes")
+
+    environments = cfg.get("environments", {})
+    if env_name not in environments:
+        raise ValueError(f"Environment '{env_name}' not found in config.json")
+
+    cfg["environment"] = environments[env_name]
+
+    # ---- Handle token injection from OS env vars ----
+    token_var = cfg["environment"].get("auth_token_env_var")
     if token_var:
         token = os.getenv(token_var)
         if token:
-            env_section["auth_token"] = token
-    cfg["environment"] = env_section
+            cfg["environment"]["auth_token"] = token
+
+    print(f"[INFO] Running tests on environment: {env_name}")
     return cfg
 
 # ------------------ PARAMETRIZE TESTS ------------------ #
@@ -60,12 +80,13 @@ def pytest_generate_tests(metafunc):
 @pytest.fixture(scope="session", autouse=True)
 def before_suite(request):
     global playwright, config
-    config = load_config(request.config.getoption("--config"))
+    config = load_config(request.config.getoption("--config"), request=request)
     print("\n[Setup] Starting Playwright...")
     playwright = sync_playwright().start()
     yield
     print("\n[Teardown] Stopping Playwright...")
     playwright.stop()
+
 
 # ------------------ PAGE FIXTURE ------------------ #
 @pytest.fixture
@@ -137,18 +158,28 @@ def pytest_runtest_makereport(item, call):
     outcome = yield
     report = outcome.get_result()
 
-    if report.when == "call" and report.failed:
-        page = item.funcargs.get("page", None)
-        if page and hasattr(page, "screenshot"):
-            try:
-                test_name = re.sub(r'[^a-zA-Z0-9_]+', '_', item.name)
-                screenshot_path = os.path.join(SCREENSHOT_DIR, f"{test_name}.png")
-                page.screenshot(path=screenshot_path, full_page=True)
-                print(f"\n[Screenshot] Saved: {screenshot_path}")
-            except Exception as e:
-                print(f"[WARN] Screenshot capture failed: {e}")
-        else:
-            print(f"[INFO] No Playwright page object — skipping screenshot for: {item.name}")
+    if report.when == "call":
+        # Count results
+        if report.passed:
+            TEST_RESULTS["passed"] += 1
+        elif report.failed:
+            TEST_RESULTS["failed"] += 1
+        elif report.skipped:
+            TEST_RESULTS["skipped"] += 1
+
+        # Screenshot on failure
+        if report.failed:
+            page = item.funcargs.get("page", None)
+            if page and hasattr(page, "screenshot"):
+                try:
+                    test_name = re.sub(r'[^a-zA-Z0-9_]+', '_', item.name)
+                    screenshot_path = os.path.join(SCREENSHOT_DIR, f"{test_name}.png")
+                    page.screenshot(path=screenshot_path, full_page=True)
+                    print(f"\n[Screenshot] Saved: {screenshot_path}")
+                except Exception as e:
+                    print(f"[WARN] Screenshot capture failed: {e}")
+            else:
+                print(f"[INFO] No Playwright page object — skipping screenshot for: {item.name}")
 
 # ------------------ POST-SUITE ACTIONS ------------------ #
 def pytest_sessionfinish(session, exitstatus):
@@ -181,3 +212,38 @@ def pytest_sessionfinish(session, exitstatus):
             print(f"[ERROR] Failed to generate Allure report: {e}")
     else:
         print("[WARN] No allure-results found — skipping report generation")
+
+#----------------email&Message-----------------------#
+
+
+def send_notifications(allure_report_dir):
+    # Overall status
+    overall_status = "Pass" if TEST_RESULTS["failed"] == 0 else "Fail"
+
+    # Allure summary
+    summary = {
+        "passed": TEST_RESULTS.get("passed", 0),
+        "failed": TEST_RESULTS.get("failed", 0),
+        "skipped": TEST_RESULTS.get("skipped", 0)
+    }
+
+    # Teams message
+    message_text = f"Execution Finished\nPassed: {summary['passed']}\nFailed: {summary['failed']}\nSkipped: {summary['skipped']}\nAllure report attached in email."
+    try:
+        send_teams_message(message_text)
+    except Exception as e:
+        print(f"[WARN] Teams message not sent: {e}")
+
+    # Email
+    try:
+        # zip Allure report for attachment
+        import shutil
+        zip_path = "reports/allure-report.zip"
+        shutil.make_archive("reports/allure-report", 'zip', allure_report_dir)
+
+        send_email_from_config(
+            allure_summary=summary,
+            overall_status=overall_status
+        )
+    except Exception as e:
+        print(f"[WARN] Email not sent: {e}")
