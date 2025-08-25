@@ -1,7 +1,11 @@
 import time
+
+from pytest_playwright.pytest_playwright import browser_name
+
 from page_objects.locators.e2e_locators.moes_e2e_locators import MoesE2ELocators
 import utils.data_utils
 from utils.script_utils import log_step, save_results_to_excel, logger
+
 
 
 class MoesE2EPage:
@@ -178,11 +182,24 @@ class MoesE2EPage:
                 self.page.click('#acceptAllCookieButton', force=True)
                 log_step("Cookies accepted (forced)", "PASS", self.test_results, self.start_time)
 
-
             logger.info("Waiting for and clicking Start Order")
-            self.page.locator(MoesE2ELocators.START_ORDER).wait_for(state="visible", timeout=20000)
-            self.page.locator(MoesE2ELocators.START_ORDER).click()
-            log_step("Start Order clicked", "PASS", self.test_results, self.start_time)
+
+            logger.info("Deciding which button to click")
+            time.sleep(2)
+
+            if self.page.locator(MoesE2ELocators.See_menu_button).is_visible(timeout=3000):
+                # If See Menu button is visible → click it
+                self.page.locator(MoesE2ELocators.See_menu_button).click()
+                log_step("See Menu clicked", "PASS", self.test_results, self.start_time)
+                self.page.locator(MoesE2ELocators.START_ORDER).wait_for(state="visible", timeout=10000)
+                self.page.locator(MoesE2ELocators.START_ORDER).click()
+                log_step("Start Order clicked", "PASS", self.test_results, self.start_time)
+
+            else:
+                # If See Menu button is not visible → click Start Order
+                self.page.locator(MoesE2ELocators.START_ORDER).wait_for(state="visible", timeout=10000)
+                self.page.locator(MoesE2ELocators.START_ORDER).click()
+                log_step("Start Order clicked", "PASS", self.test_results, self.start_time)
 
             logger.info("Waiting for store search input and filling address: 'Guam'")
             self.page.locator(MoesE2ELocators.SEARCH_TEXT).wait_for(state="visible", timeout=10000)
@@ -276,8 +293,15 @@ class MoesE2EPage:
             order_time = self.page.inner_text(MoesE2ELocators.ORDER_TIME_TEXT)
 
             # Log success with order details
-            log_step(f"Order placed successfully with {order_id} at {order_time}",
-                     "PASS", self.test_results, self.start_time)
+            log_step(
+                step_name="Order placed successfully",
+                status="PASS",
+                test_results=self.test_results,
+                start_time=self.start_time,
+                order_id=order_id,
+                order_time=order_time,
+                browser_name=browser_name
+            )
 
             # 📸 Take screenshot of confirmation page
             screenshot_path = f"screenshots/order_confirmation_{int(time.time())}.png"

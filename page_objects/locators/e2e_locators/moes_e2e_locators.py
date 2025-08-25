@@ -69,4 +69,5 @@ class MoesE2ELocators:
     ORDER_DETAIL_SECTION = '[data-testid="orderDetail"]'
     ORDER_ID_TEXT = '[data-testid="orderID"]'
     ORDER_TIME_TEXT = '.orderDetailTime'
+    See_menu_button = "//a[@href='https://www.moes.com/menu']"
 
