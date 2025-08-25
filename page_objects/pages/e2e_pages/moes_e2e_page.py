@@ -1,7 +1,4 @@
 import time
-
-from pytest_playwright.pytest_playwright import browser_name
-
 from page_objects.locators.e2e_locators.moes_e2e_locators import MoesE2ELocators
 import utils.data_utils
 from utils.script_utils import log_step, save_results_to_excel, logger
